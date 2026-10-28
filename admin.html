@@ -136,7 +136,7 @@
 </head>
 <body>
 
-    <div class="admin-container">
+    <div class="admin-container" id="admin-app" style="display: none;">
         <!-- Header -->
         <div class="header">
             <h1>Admin Control Panel</h1>
@@ -201,11 +201,24 @@
     </div>
 
     <script>
+        // Admin Security Check
+        const ADMIN_PIN = "8888"; // <--- CHANGE THIS TO YOUR DESIRED PIN CODE
+
+        function verifyAdmin() {
+            let enteredPin = prompt("Enter Admin Passcode:");
+            if (enteredPin === ADMIN_PIN) {
+                document.getElementById('admin-app').style.display = 'flex';
+                loadAdminData();
+            } else {
+                alert("Incorrect PIN! Access denied.");
+                window.location.href = "index.html";
+            }
+        }
+
         function loadAdminData() {
             let savedRate = localStorage.getItem('nexis_global_rate') || '0.5';
             document.getElementById('set-rate').value = savedRate;
 
-            // Load existing announcement if present
             let activeAnnouncement = localStorage.getItem('nexis_announcement') || '';
             document.getElementById('announcement-input').value = activeAnnouncement;
 
@@ -303,7 +316,8 @@
             }
         }
 
-        loadAdminData();
+        // Run security prompt on page load
+        verifyAdmin();
     </script>
 </body>
 </html>
