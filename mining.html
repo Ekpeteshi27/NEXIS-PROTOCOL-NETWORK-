@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nexis Protocol | Mining Dashboard</title>
+
+    <!-- Monetag Domain Verification Tag -->
+    <meta name="monetag" content="YOUR_VERIFICATION_CODE_HERE">
+
+    <!-- Monetag In-Page Push / Anti-Adblock Native Script -->
+    <script src="https://3nbf4.com/act/files/tag.min.js?z=12141446" data-cfasync="false" async></script>
+
     <style>
         :root {
             --bg-color: #090d16;
@@ -233,6 +240,17 @@
     </div>
 
     <script>
+        // Automatically register Monetag Service Worker for Web Push Notifications
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(function(reg) {
+                    console.log('Monetag Push Service Worker Registered');
+                })
+                .catch(function(err) {
+                    console.log('Service Worker Registration Failed:', err);
+                });
+        }
+
         // Check Authentication
         let loggedEmail = localStorage.getItem('nexis_logged_email');
         let loggedUsername = localStorage.getItem('nexis_logged_username');
@@ -328,9 +346,10 @@
             alert(`Successfully claimed ${earnedTotal.toFixed(2)} $NEXIS! New cycle started.`);
         }
 
-        // Monetag Ad Boost Function
+        // Monetag Ad Boost Function (Using Zone 12141446 Link or Direct SmartLink)
         function watchBoostAd() {
-            let monetagUrl = "https://your-monetag-smartlink-url.com";
+            // Replace with your Monetag Direct Link or SmartLink URL
+            let monetagUrl = "https://3nbf4.com/4/12141446"; 
             window.open(monetagUrl, '_blank');
 
             setTimeout(() => {
