@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexis Protocol | Admin Control Panel</title>
+    <style>
+        :root {
+            --bg-color: #090d16;
+            --card-bg: #111827;
+            --card-border: #1f2937;
+            --accent: #3b82f6;
+            --danger: #ef4444;
+            --success: #10b981;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .admin-container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding-bottom: 40px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 8px;
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            margin: 0;
+            color: var(--danger);
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin: 4px 0 0 0;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 16px;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .form-input, textarea {
+            width: 100%;
+            background-color: #1a2234;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 10px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .form-input:focus, textarea:focus {
+            border-color: var(--accent);
+        }
+
+        textarea {
+            resize: vertical;
+            height: 60px;
+        }
+
+        .btn {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn:active {
+            opacity: 0.8;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+        }
+
+        .task-item-admin {
+            background: #1a2234;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="admin-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Admin Control Panel</h1>
+            <p>Nexis Protocol Management</p>
+        </div>
+
+        <!-- Add Task Management -->
+        <div class="card">
+            <div class="card-title">Add New Earning Task</div>
+            <div class="form-group">
+                <label class="form-label">Task Title</label>
+                <input type="text" id="task-title" class="form-input" placeholder="e.g. Watch Monetag Offer">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Task Description</label>
+                <input type="text" id="task-desc" class="form-input" placeholder="e.g. View partner ad for 10s">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Target Link (SmartLink / URL)</label>
+                <input type="url" id="task-url" class="form-input" placeholder="https://monetag-link.com">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Reward Amount ($NEXIS)</label>
+                <input type="number" id="task-reward" class="form-input" value="3.0" step="0.5">
+            </div>
+            <button class="btn" onclick="addNewTask()">Publish Task to Platform</button>
+        </div>
+
+        <!-- Existing Active Tasks List -->
+        <div class="card">
+            <div class="card-title">Active Tasks Manager</div>
+            <div id="admin-tasks-list">
+                <p style="color:var(--text-muted); font-size:0.85rem;">No tasks added yet.</p>
+            </div>
+        </div>
+
+        <!-- Global Settings Management -->
+        <div class="card">
+            <div class="card-title">Global Mining Settings</div>
+            <div class="form-group">
+                <label class="form-label">Mining Rate ($NEXIS / hr)</label>
+                <input type="number" id="set-rate" class="form-input" value="0.5" step="0.1">
+            </div>
+            <button class="btn" onclick="saveSettings()">Save Global Settings</button>
+        </div>
+
+        <!-- Broadcast Announcements -->
+        <div class="card">
+            <div class="card-title">Broadcast Announcement</div>
+            <div class="form-group">
+                <textarea id="announcement-input" placeholder="Type message for all users..."></textarea>
+            </div>
+            <button class="btn" onclick="broadcastAnnouncement()">Publish Announcement</button>
+            <button class="btn btn-danger" style="margin-top: 8px;" onclick="clearAnnouncement()">Delete Active Announcement</button>
+        </div>
+
+        <!-- System Controls -->
+        <div class="card">
+            <div class="card-title">System Controls</div>
+            <button class="btn btn-danger" onclick="resetSystemData()">Reset Simulation Data</button>
+        </div>
+    </div>
+
+    <script>
+        function loadAdminData() {
+            let savedRate = localStorage.getItem('nexis_global_rate') || '0.5';
+            document.getElementById('set-rate').value = savedRate;
+
+            // Load existing announcement if present
+            let activeAnnouncement = localStorage.getItem('nexis_announcement') || '';
+            document.getElementById('announcement-input').value = activeAnnouncement;
+
+            renderAdminTasks();
+        }
+
+        function addNewTask() {
+            let title = document.getElementById('task-title').value.trim();
+            let desc = document.getElementById('task-desc').value.trim();
+            let url = document.getElementById('task-url').value.trim();
+            let reward = parseFloat(document.getElementById('task-reward').value) || 3.0;
+
+            if (!title || !url) {
+                alert("Please provide at least a Task Title and Target Link.");
+                return;
+            }
+
+            let tasks = JSON.parse(localStorage.getItem('nexis_admin_tasks')) || [];
+            let newTask = {
+                id: 'task_' + Date.now(),
+                title: title,
+                desc: desc || 'Complete action for reward',
+                url: url,
+                reward: reward
+            };
+
+            tasks.push(newTask);
+            localStorage.setItem('nexis_admin_tasks', JSON.stringify(tasks));
+
+            alert("Task published successfully!");
+            document.getElementById('task-title').value = '';
+            document.getElementById('task-desc').value = '';
+            document.getElementById('task-url').value = '';
+            renderAdminTasks();
+        }
+
+        function renderAdminTasks() {
+            let tasks = JSON.parse(localStorage.getItem('nexis_admin_tasks')) || [];
+            let listContainer = document.getElementById('admin-tasks-list');
+            
+            if (tasks.length === 0) {
+                listContainer.innerHTML = `<p style="color:var(--text-muted); font-size:0.85rem;">No tasks added yet.</p>`;
+                return;
+            }
+
+            let html = '';
+            tasks.forEach((t, index) => {
+                html += `
+                    <div class="task-item-admin">
+                        <div>
+                            <strong>${t.title}</strong><br>
+                            <span style="color:var(--success);">+${t.reward} $NEXIS</span>
+                        </div>
+                        <button class="btn btn-danger" style="width:auto; padding:6px 10px; font-size:0.75rem;" onclick="deleteTask(${index})">Delete</button>
+                    </div>
+                `;
+            });
+            listContainer.innerHTML = html;
+        }
+
+        function deleteTask(index) {
+            let tasks = JSON.parse(localStorage.getItem('nexis_admin_tasks')) || [];
+            tasks.splice(index, 1);
+            localStorage.setItem('nexis_admin_tasks', JSON.stringify(tasks));
+            renderAdminTasks();
+        }
+
+        function saveSettings() {
+            let newRate = document.getElementById('set-rate').value;
+            localStorage.setItem('nexis_global_rate', newRate);
+            alert("Global settings updated!");
+        }
+
+        function broadcastAnnouncement() {
+            let message = document.getElementById('announcement-input').value.trim();
+            if (!message) {
+                alert("Please enter a broadcast message.");
+                return;
+            }
+            localStorage.setItem('nexis_announcement', message);
+            alert("Announcement published successfully!");
+        }
+
+        function clearAnnouncement() {
+            localStorage.removeItem('nexis_announcement');
+            document.getElementById('announcement-input').value = '';
+            alert("Announcement deleted from all dashboards!");
+        }
+
+        function resetSystemData() {
+            if (confirm("Are you sure you want to reset local storage data?")) {
+                localStorage.clear();
+                alert("System data wiped.");
+                loadAdminData();
+            }
+        }
+
+        loadAdminData();
+    </script>
+</body>
+</html>
