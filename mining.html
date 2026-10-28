@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexis Protocol | Mining Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #090d16;
+            --card-bg: #111827;
+            --card-border: #1f2937;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding-bottom: 40px;
+        }
+
+        /* Top Nav Bar */
+        .nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 12px 16px;
+        }
+
+        .user-greeting {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 6px;
+        }
+
+        .nav-btn {
+            background-color: #1a2234;
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* Broadcast Announcement Banner */
+        .announcement-banner {
+            background-color: #1e3a8a;
+            border: 1px solid #3b82f6;
+            border-radius: 14px;
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            line-height: 1.4;
+            display: none;
+        }
+
+        /* Main Balance Card */
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .balance-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .balance-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin: 6px 0;
+            color: var(--success);
+        }
+
+        /* Mining Rig Status Box */
+        .rig-box {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .timer-display {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 10px 0;
+            color: var(--warning);
+            font-family: monospace;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .stat-card {
+            background-color: #1a2234;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .stat-value {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        /* Buttons */
+        .btn {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 12px;
+        }
+
+        .btn:active {
+            background-color: var(--accent-hover);
+        }
+
+        .btn:disabled {
+            background-color: #374151;
+            color: #6b7280;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: #1f2937;
+            color: var(--text-main);
+            border: 1px solid #374151;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <!-- Navigation Header -->
+        <div class="nav-bar">
+            <div class="user-greeting" id="username-display">Miner</div>
+            <div class="nav-links">
+                <a href="tasks.html" class="nav-btn">Tasks</a>
+                <a href="referral.html" class="nav-btn">Friends</a>
+                <button class="nav-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Broadcast Announcement Box -->
+        <div class="announcement-banner" id="announcement-banner">
+            📢 <span id="announcement-text"></span>
+        </div>
+
+        <!-- Balance Card -->
+        <div class="card">
+            <div class="balance-label">Total Balance</div>
+            <div class="balance-value" id="user-balance">0.00</div>
+            <div style="font-size: 0.85rem; color: var(--accent); font-weight: 600;">$NEXIS Protocol</div>
+        </div>
+
+        <!-- Mining Rig Box -->
+        <div class="rig-box">
+            <div class="balance-label">12-Hour Mining Cycle</div>
+            <div class="timer-display" id="timer-text">12:00:00</div>
+            <p id="rig-status" style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Mining session active...</p>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Mining Speed</div>
+                    <div class="stat-value" id="speed-display">0.50 / hr</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Cycle Earned</div>
+                    <div class="stat-value" id="cycle-earned">0.00 $NEX</div>
+                </div>
+            </div>
+
+            <button class="btn" id="claim-btn" onclick="claimCycle()" disabled>Claim & Restart Cycle</button>
+        </div>
+
+        <!-- Monetag Ad Boost Section -->
+        <div class="card">
+            <div class="balance-label" style="margin-bottom: 8px;">Ad Boost & Daily Reward</div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0;">Watch a sponsored link to claim <strong>+2.0 $NEXIS</strong> and boost your speed by <strong>+0.25 /hr</strong>!</p>
+            <button class="btn btn-secondary" onclick="watchBoostAd()">Watch Ad & Boost Speed</button>
+        </div>
+    </div>
+
+    <script>
+        // Check Authentication
+        let loggedEmail = localStorage.getItem('nexis_logged_email');
+        let loggedUsername = localStorage.getItem('nexis_logged_username');
+        if (!loggedEmail) {
+            window.location.href = "index.html";
+        }
+        document.getElementById('username-display').innerText = "@" + (loggedUsername || "Miner");
+
+        // Unique Account Storage Keys
+        let balanceKey = 'nexis_balance_' + loggedEmail;
+        let speedKey = 'nexis_speed_' + loggedEmail;
+        let timerKey = 'nexis_timeleft_' + loggedEmail;
+
+        // Load User Data state
+        let balance = parseFloat(localStorage.getItem(balanceKey)) || 0.00;
+        let miningSpeed = parseFloat(localStorage.getItem(speedKey));
+        
+        if (isNaN(miningSpeed)) {
+            let globalBaseRate = parseFloat(localStorage.getItem('nexis_global_rate')) || 0.5;
+            miningSpeed = globalBaseRate;
+            localStorage.setItem(speedKey, miningSpeed);
+        }
+        
+        // 12-Hour Timer Logic (12 hours in seconds = 43200)
+        let cycleDuration = 43200; 
+        let timeLeft = parseInt(localStorage.getItem(timerKey));
+        if (isNaN(timeLeft) || timeLeft <= 0) {
+            timeLeft = cycleDuration;
+        } else if (timeLeft > cycleDuration) {
+            timeLeft = cycleDuration;
+        }
+
+        // Check for Admin Announcements
+        function checkAnnouncement() {
+            let msg = localStorage.getItem('nexis_announcement');
+            let banner = document.getElementById('announcement-banner');
+            let textSpan = document.getElementById('announcement-text');
+
+            if (msg && msg.trim() !== '') {
+                textSpan.innerText = msg;
+                banner.style.display = 'block';
+            } else {
+                banner.style.display = 'none';
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('user-balance').innerText = balance.toFixed(2);
+            document.getElementById('speed-display').innerText = miningSpeed.toFixed(2) + " / hr";
+            
+            // Calculate pending earnings for current progress
+            let elapsedHours = (cycleDuration - timeLeft) / 3600;
+            let currentCycleMined = elapsedHours * miningSpeed;
+            document.getElementById('cycle-earned').innerText = currentCycleMined.toFixed(2) + " $NEX";
+
+            // Format Timer HH:MM:SS
+            let hours = Math.floor(timeLeft / 3600);
+            let minutes = Math.floor((timeLeft % 3600) / 60);
+            let seconds = timeLeft % 60;
+            document.getElementById('timer-text').innerText = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Countdown Timer Interval
+        let timerInterval = setInterval(() => {
+            if (timeLeft > 0) {
+                timeLeft--;
+                localStorage.setItem(timerKey, timeLeft);
+                updateUI();
+            } else {
+                document.getElementById('rig-status').innerText = "Mining cycle completed! Claim your tokens.";
+                document.getElementById('claim-btn').disabled = false;
+            }
+        }, 1000);
+
+        if (timeLeft <= 0) {
+            document.getElementById('rig-status').innerText = "Mining cycle completed! Claim your tokens.";
+            document.getElementById('claim-btn').disabled = false;
+        }
+
+        // Claim Cycle Rewards
+        function claimCycle() {
+            let earnedTotal = 12 * miningSpeed;
+            balance += earnedTotal;
+            localStorage.setItem(balanceKey, balance);
+
+            timeLeft = cycleDuration;
+            localStorage.setItem(timerKey, timeLeft);
+            document.getElementById('rig-status').innerText = "Mining session active...";
+            document.getElementById('claim-btn').disabled = true;
+
+            updateUI();
+            alert(`Successfully claimed ${earnedTotal.toFixed(2)} $NEXIS! New cycle started.`);
+        }
+
+        // Monetag Ad Boost Function
+        function watchBoostAd() {
+            let monetagUrl = "https://your-monetag-smartlink-url.com";
+            window.open(monetagUrl, '_blank');
+
+            setTimeout(() => {
+                balance += 2.0;
+                miningSpeed += 0.25;
+
+                localStorage.setItem(balanceKey, balance);
+                localStorage.setItem(speedKey, miningSpeed);
+
+                updateUI();
+                alert("Ad verified! +2.0 $NEXIS added and mining speed boosted by +0.25/hr!");
+            }, 2000);
+        }
+
+        function logout() {
+            localStorage.removeItem('nexis_logged_email');
+            localStorage.removeItem('nexis_logged_username');
+            window.location.href = "index.html";
+        }
+
+        checkAnnouncement();
+        updateUI();
+    </script>
+</body>
+</html>

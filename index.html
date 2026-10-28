@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexis Protocol | Account Access</title>
+    <style>
+        :root {
+            --bg-color: #090d16;
+            --card-bg: #111827;
+            --card-border: #1f2937;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 380px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .logo-area {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .logo-area h1 {
+            font-size: 1.6rem;
+            margin: 0;
+            background: linear-gradient(to right, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-area p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin: 6px 0 0 0;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            background-color: #1a2234;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 12px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--accent);
+        }
+
+        .btn {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 8px;
+        }
+
+        .btn:active {
+            background-color: var(--accent-hover);
+        }
+
+        .toggle-text {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .toggle-text span {
+            color: var(--accent);
+            cursor: pointer;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="auth-container">
+        <div class="logo-area">
+            <h1>Nexis Protocol</h1>
+            <p id="form-subtitle">Create your cloud mining account</p>
+        </div>
+
+        <form id="auth-form" onsubmit="handleAuth(event)">
+            <div class="form-group" id="username-group">
+                <label class="form-label">Username</label>
+                <input type="text" id="username" class="form-input" placeholder="Choose a username">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" id="email" class="form-input" placeholder="name@gmail.com" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" id="password" class="form-input" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="btn" id="submit-btn">Register Account</button>
+        </form>
+
+        <div class="toggle-text">
+            <span id="toggle-link" onclick="toggleMode()">Already have an account? Login</span>
+        </div>
+    </div>
+
+    <script>
+        let isLoginMode = false;
+
+        function toggleMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('form-subtitle').innerText = isLoginMode ? "Login to your mining account" : "Create your cloud mining account";
+            document.getElementById('submit-btn').innerText = isLoginMode ? "Login" : "Register Account";
+            
+            let userGroup = document.getElementById('username-group');
+            let userField = document.getElementById('username');
+            
+            if (isLoginMode) {
+                userGroup.style.display = "none";
+                userField.removeAttribute('required');
+            } else {
+                userGroup.style.display = "block";
+                userField.setAttribute('required', 'true');
+            }
+
+            document.getElementById('toggle-link').innerText = isLoginMode ? "Need an account? Register" : "Already have an account? Login";
+        }
+
+        function handleAuth(event) {
+            event.preventDefault();
+            let email = document.getElementById('email').value.trim().toLowerCase();
+            let password = document.getElementById('password').value.trim();
+
+            if (isLoginMode) {
+                let savedUser = localStorage.getItem('nexis_user_' + email);
+                let savedPass = localStorage.getItem('nexis_pass_' + email);
+
+                if (!savedUser) {
+                    alert("No account found with this email! Please register first.");
+                    return;
+                }
+                if (savedPass !== password) {
+                    alert("Incorrect password!");
+                    return;
+                }
+
+                localStorage.setItem('nexis_logged_email', email);
+                localStorage.setItem('nexis_logged_username', savedUser);
+            } else {
+                let username = document.getElementById('username').value.trim();
+                if (!username) {
+                    alert("Please enter a username.");
+                    return;
+                }
+
+                if (localStorage.getItem('nexis_user_' + email)) {
+                    alert("Account already exists with this email! Please login.");
+                    return;
+                }
+
+                localStorage.setItem('nexis_user_' + email, username);
+                localStorage.setItem('nexis_pass_' + email, password);
+                localStorage.setItem('nexis_logged_email', email);
+                localStorage.setItem('nexis_logged_username', username);
+                
+                // Initialize balance and speed for new user
+                if (!localStorage.getItem('nexis_balance_' + email)) {
+                    localStorage.setItem('nexis_balance_' + email, '0.00');
+                    localStorage.setItem('nexis_speed_' + email, '0.5');
+                }
+            }
+
+            // Redirect to mining dashboard
+            window.location.href = "mining.html";
+        }
+    </script>
+</body>
+</html>
