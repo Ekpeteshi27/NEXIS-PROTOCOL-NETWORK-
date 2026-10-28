@@ -346,21 +346,19 @@
             alert(`Successfully claimed ${earnedTotal.toFixed(2)} $NEXIS! New cycle started.`);
         }
 
-        // Monetag Ad Boost Function (Using your direct link)
+        // Monetag Ad Boost Function (Mobile-Friendly Direct Redirect)
         function watchBoostAd() {
             let monetagUrl = "https://uplcm.com/4/12141542"; 
-            window.open(monetagUrl, '_blank');
 
-            setTimeout(() => {
-                balance += 2.0;
-                miningSpeed += 0.25;
+            // Credit the user balance and boost speed before navigating
+            balance += 2.0;
+            miningSpeed += 0.25;
 
-                localStorage.setItem(balanceKey, balance);
-                localStorage.setItem(speedKey, miningSpeed);
+            localStorage.setItem(balanceKey, balance);
+            localStorage.setItem(speedKey, miningSpeed);
 
-                updateUI();
-                alert("Ad verified! +2.0 $NEXIS added and mining speed boosted by +0.25/hr!");
-            }, 2000);
+            // Directly navigate to the Monetag link so mobile browsers don't block it
+            window.location.href = monetagUrl;
         }
 
         function logout() {
