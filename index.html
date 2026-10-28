@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nexis Protocol | Account Access</title>
+
+    <!-- Monetag Domain Verification Tag -->
+    <meta name="monetag" content="YOUR_VERIFICATION_CODE_HERE">
+
+    <!-- Monetag In-Page Push / Anti-Adblock Native Script -->
+    <script src="https://3nbf4.com/act/files/tag.min.js?z=12141446" data-cfasync="false" async></script>
+
     <style>
         :root {
             --bg-color: #090d16;
@@ -130,7 +137,7 @@
         <form id="auth-form" onsubmit="handleAuth(event)">
             <div class="form-group" id="username-group">
                 <label class="form-label">Username</label>
-                <input type="text" id="username" class="form-input" placeholder="Choose a username">
+                <input type="text" id="username" class="form-input" placeholder="Choose a username" required>
             </div>
 
             <div class="form-group">
@@ -153,6 +160,17 @@
 
     <script>
         let isLoginMode = false;
+
+        // Automatically register Monetag Service Worker for Web Push Notifications
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(function(reg) {
+                    console.log('Monetag Push Service Worker Registered');
+                })
+                .catch(function(err) {
+                    console.log('Service Worker Registration Failed:', err);
+                });
+        }
 
         function toggleMode() {
             isLoginMode = !isLoginMode;
