@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nexis Protocol | Earning Tasks</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
             --bg-color: #090d16;
@@ -61,6 +62,17 @@
             cursor: pointer;
             text-decoration: none;
             font-weight: 600;
+        }
+
+        .announcement-banner {
+            background-color: #1e3a8a;
+            border: 1px solid #3b82f6;
+            border-radius: 14px;
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            line-height: 1.4;
+            display: none;
         }
 
         .balance-strip {
@@ -130,6 +142,11 @@
             <a href="mining.html" class="nav-btn">← Dashboard</a>
         </div>
 
+        <!-- Broadcast Announcement Box (Displays on both Web & Telegram) -->
+        <div class="announcement-banner" id="announcement-banner">
+            📢 <span id="announcement-text"></span>
+        </div>
+
         <!-- Balance Header -->
         <div class="balance-strip">
             <span style="font-size:0.85rem; color:var(--text-muted);">Current Balance</span>
@@ -137,19 +154,36 @@
         </div>
 
         <!-- Dynamic Admin Tasks List Container -->
-        <div id="dynamic-tasks-list" style="display: flex; flex-direction: column; gap: 12px;">
-            <!-- Rendered via JavaScript -->
-        </div>
+        <div id="dynamic-tasks-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
     </div>
 
     <script>
-        let loggedEmail = localStorage.getItem('nexis_logged_email');
-        if (!loggedEmail) {
-            window.location.href = "index.html";
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
         }
 
-        let balanceKey = 'nexis_balance_' + loggedEmail;
+        let userId = localStorage.getItem('nexis_user_id');
+        if (!userId) {
+            window.location.replace("index.html");
+        }
+
+        let balanceKey = 'nexis_balance_' + userId;
         let balance = parseFloat(localStorage.getItem(balanceKey)) || 0.00;
+
+        function checkAnnouncement() {
+            let msg = localStorage.getItem('nexis_announcement');
+            let banner = document.getElementById('announcement-banner');
+            let textSpan = document.getElementById('announcement-text');
+
+            if (msg && msg.trim() !== '') {
+                textSpan.innerText = msg;
+                banner.style.display = 'block';
+            } else {
+                banner.style.display = 'none';
+            }
+        }
 
         function updateUI() {
             document.getElementById('user-balance').innerText = balance.toFixed(2) + " $NEX";
@@ -171,7 +205,7 @@
 
             let html = '';
             tasks.forEach((task) => {
-                let userTaskKey = task.id + '_' + loggedEmail;
+                let userTaskKey = task.id + '_' + userId;
                 let isCompleted = localStorage.getItem(userTaskKey) === 'done';
 
                 html += `
@@ -193,15 +227,17 @@
         }
 
         function completeTask(taskId, reward, url) {
-            // Open admin-set link in a new tab
-            window.open(url, '_blank');
+            if (tg && tg.openLink) {
+                tg.openLink(url);
+            } else {
+                window.open(url, '_blank');
+            }
 
             setTimeout(() => {
                 balance += reward;
                 localStorage.setItem(balanceKey, balance);
                 
-                // Mark complete for this specific user
-                let userTaskKey = taskId + '_' + loggedEmail;
+                let userTaskKey = taskId + '_' + userId;
                 localStorage.setItem(userTaskKey, 'done');
                 
                 updateUI();
@@ -209,6 +245,7 @@
             }, 3000);
         }
 
+        checkAnnouncement();
         updateUI();
     </script>
 </body>
