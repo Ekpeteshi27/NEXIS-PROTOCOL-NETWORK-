@@ -137,10 +137,29 @@
 <body>
 
     <div class="admin-container" id="admin-app" style="display: none;">
-        <!-- Header -->
         <div class="header">
             <h1>Admin Control Panel</h1>
             <p>Nexis Protocol Management</p>
+        </div>
+
+        <!-- Broadcast Announcements (Syncs to Web & Telegram App) -->
+        <div class="card">
+            <div class="card-title">Broadcast Post / Announcement</div>
+            <div class="form-group">
+                <textarea id="announcement-input" placeholder="Type post or announcement for Website & Telegram App..."></textarea>
+            </div>
+            <button class="btn" onclick="broadcastAnnouncement()">Publish Post to Web & Telegram</button>
+            <button class="btn btn-danger" style="margin-top: 8px;" onclick="clearAnnouncement()">Delete Active Post</button>
+        </div>
+
+        <!-- Monetization Settings -->
+        <div class="card">
+            <div class="card-title">Monetization Settings</div>
+            <div class="form-group">
+                <label class="form-label">AdsGram Reward Block ID (Telegram Mini App)</label>
+                <input type="text" id="set-adsgram" class="form-input" placeholder="Paste your AdsGram Block ID">
+            </div>
+            <button class="btn" onclick="saveMonetizationSettings()">Save Monetization Config</button>
         </div>
 
         <!-- Add Task Management -->
@@ -183,16 +202,6 @@
             <button class="btn" onclick="saveSettings()">Save Global Settings</button>
         </div>
 
-        <!-- Broadcast Announcements -->
-        <div class="card">
-            <div class="card-title">Broadcast Announcement</div>
-            <div class="form-group">
-                <textarea id="announcement-input" placeholder="Type message for all users..."></textarea>
-            </div>
-            <button class="btn" onclick="broadcastAnnouncement()">Publish Announcement</button>
-            <button class="btn btn-danger" style="margin-top: 8px;" onclick="clearAnnouncement()">Delete Active Announcement</button>
-        </div>
-
         <!-- System Controls -->
         <div class="card">
             <div class="card-title">System Controls</div>
@@ -201,8 +210,7 @@
     </div>
 
     <script>
-        // Admin Security Check
-        const ADMIN_PIN = "8888"; // <--- CHANGE THIS TO YOUR DESIRED PIN CODE
+        const ADMIN_PIN = "8888";
 
         function verifyAdmin() {
             let enteredPin = prompt("Enter Admin Passcode:");
@@ -219,10 +227,19 @@
             let savedRate = localStorage.getItem('nexis_global_rate') || '0.5';
             document.getElementById('set-rate').value = savedRate;
 
+            let savedAdsgram = localStorage.getItem('nexis_adsgram_block') || '';
+            document.getElementById('set-adsgram').value = savedAdsgram;
+
             let activeAnnouncement = localStorage.getItem('nexis_announcement') || '';
             document.getElementById('announcement-input').value = activeAnnouncement;
 
             renderAdminTasks();
+        }
+
+        function saveMonetizationSettings() {
+            let blockId = document.getElementById('set-adsgram').value.trim();
+            localStorage.setItem('nexis_adsgram_block', blockId);
+            alert("AdsGram block configuration saved!");
         }
 
         function addNewTask() {
@@ -295,17 +312,17 @@
         function broadcastAnnouncement() {
             let message = document.getElementById('announcement-input').value.trim();
             if (!message) {
-                alert("Please enter a broadcast message.");
+                alert("Please enter a post or announcement message.");
                 return;
             }
             localStorage.setItem('nexis_announcement', message);
-            alert("Announcement published successfully!");
+            alert("Post published! It is now visible on both the Website and Telegram Mini App.");
         }
 
         function clearAnnouncement() {
             localStorage.removeItem('nexis_announcement');
             document.getElementById('announcement-input').value = '';
-            alert("Announcement deleted from all dashboards!");
+            alert("Post removed from Website and Telegram Mini App!");
         }
 
         function resetSystemData() {
@@ -316,7 +333,6 @@
             }
         }
 
-        // Run security prompt on page load
         verifyAdmin();
     </script>
 </body>
