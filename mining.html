@@ -207,7 +207,7 @@
             </div>
         </div>
 
-        <!-- Broadcast Announcement Box (Displays on both Web & Telegram) -->
+        <!-- Broadcast Announcement Box -->
         <div class="announcement-banner" id="announcement-banner">
             📢 <span id="announcement-text"></span>
         </div>
@@ -224,7 +224,7 @@
             <div class="balance-label">12-Hour Mining Cycle</div>
             <div class="timer-display" id="timer-text">12:00:00</div>
             <p id="rig-status" style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Mining session active...</p>
-            
+
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-label">Mining Speed</div>
@@ -248,11 +248,15 @@
     </div>
 
     <script>
+        // Replace with your Render backend URL once deployed (e.g., https://your-app.onrender.com)
+        const API_BASE = localStorage.getItem('nexis_api_base') || '';
+
+        // Register Monetag Service Worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW Fail:', err));
         }
 
-        // Expand Telegram WebApp immediately if opened in Telegram
+        // Expand Telegram WebApp if opened inside Telegram
         const tg = window.Telegram?.WebApp;
         if (tg) {
             tg.ready();
@@ -277,13 +281,56 @@
 
         document.getElementById('username-display').innerText = "@" + (username || "Miner");
 
-        let balanceKey = 'nexis_balance_' + userId;
-        let speedKey = 'nexis_speed_' + userId;
-        let sessionKey = 'nexis_mining_session_' + userId;
+        // Storage keys for current user
+        const balanceKey = 'nexis_balance_' + userId;
+        const speedKey = 'nexis_speed_' + userId;
+        const sessionKey = 'nexis_mining_session_' + userId;
+
+        // Recover legacy balance & speed if migrating from older email-based keys
+        function migrateLegacyUserData() {
+            const oldEmail = localStorage.getItem('nexis_logged_email');
+            const currentBalanceRaw = localStorage.getItem(balanceKey);
+            const currentBalance = parseFloat(currentBalanceRaw);
+
+            if (!currentBalanceRaw || isNaN(currentBalance) || currentBalance === 0) {
+                if (oldEmail) {
+                    const oldBal = parseFloat(localStorage.getItem('nexis_balance_' + oldEmail));
+                    if (!isNaN(oldBal) && oldBal > 0) {
+                        localStorage.setItem(balanceKey, oldBal.toString());
+                    }
+                } else {
+                    // Fallback: check if a single non-zero legacy email balance exists
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (
+                            key &&
+                            key.startsWith('nexis_balance_') &&
+                            !key.startsWith('nexis_balance_web_') &&
+                            !key.startsWith('nexis_balance_tg_')
+                        ) {
+                            const val = parseFloat(localStorage.getItem(key));
+                            if (!isNaN(val) && val > 0) {
+                                localStorage.setItem(balanceKey, val.toString());
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (oldEmail && !localStorage.getItem(speedKey)) {
+                const oldSpeed = parseFloat(localStorage.getItem('nexis_speed_' + oldEmail));
+                if (!isNaN(oldSpeed) && oldSpeed > 0) {
+                    localStorage.setItem(speedKey, oldSpeed.toString());
+                }
+            }
+        }
+
+        migrateLegacyUserData();
 
         let balance = parseFloat(localStorage.getItem(balanceKey)) || 0.00;
         let miningSpeed = parseFloat(localStorage.getItem(speedKey));
-        
+
         if (isNaN(miningSpeed)) {
             let globalBaseRate = parseFloat(localStorage.getItem('nexis_global_rate')) || 0.5;
             miningSpeed = globalBaseRate;
@@ -293,11 +340,9 @@
         // 12-Hour Mining Duration in Milliseconds
         const MINING_DURATION_MS = 12 * 60 * 60 * 1000;
 
-        // Render Admin Announcements on both Web & Telegram
-        function checkAnnouncement() {
-            let msg = localStorage.getItem('nexis_announcement');
-            let banner = document.getElementById('announcement-banner');
-            let textSpan = document.getElementById('announcement-text');
+        function renderAnnouncement(msg) {
+            const banner = document.getElementById('announcement-banner');
+            const textSpan = document.getElementById('announcement-text');
 
             if (msg && msg.trim() !== '') {
                 textSpan.innerText = msg;
@@ -307,10 +352,31 @@
             }
         }
 
+        // Load announcements from localStorage first, then sync with shared backend if configured
+        async function checkAnnouncement() {
+            const cachedMsg = localStorage.getItem('nexis_announcement') || '';
+            renderAnnouncement(cachedMsg);
+
+            if (API_BASE) {
+                try {
+                    const res = await fetch(`${API_BASE}/api/announcement`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const liveMsg = data.announcement || '';
+                        localStorage.setItem('nexis_announcement', liveMsg);
+                        renderAnnouncement(liveMsg);
+                    }
+                } catch (err) {
+                    console.log('Announcement backend sync skipped:', err);
+                }
+            }
+        }
+
         // Persistent UTC Timestamp Mining Session
         function getMiningSession() {
-            let raw = localStorage.getItem(sessionKey);
+            const raw = localStorage.getItem(sessionKey);
             let session = null;
+
             if (raw) {
                 try {
                     session = JSON.parse(raw);
@@ -327,14 +393,15 @@
         }
 
         function updateUI() {
-            // Re-sync balance in case of referral or task updates
             balance = parseFloat(localStorage.getItem(balanceKey)) || balance;
+            miningSpeed = parseFloat(localStorage.getItem(speedKey)) || miningSpeed;
+
             document.getElementById('user-balance').innerText = balance.toFixed(2);
             document.getElementById('speed-display').innerText = miningSpeed.toFixed(2) + " / hr";
 
-            let session = getMiningSession();
-            let now = Date.now();
-            let timeLeftMs = session.endTime - now;
+            const session = getMiningSession();
+            const now = Date.now();
+            const timeLeftMs = session.endTime - now;
 
             if (timeLeftMs <= 0) {
                 document.getElementById('timer-text').innerText = "00:00:00";
@@ -342,16 +409,16 @@
                 document.getElementById('rig-status').innerText = "Mining cycle completed! Claim your tokens.";
                 document.getElementById('claim-btn').disabled = false;
             } else {
-                let timeLeftSec = Math.floor(timeLeftMs / 1000);
-                let hours = Math.floor(timeLeftSec / 3600);
-                let minutes = Math.floor((timeLeftSec % 3600) / 60);
-                let seconds = timeLeftSec % 60;
+                const timeLeftSec = Math.floor(timeLeftMs / 1000);
+                const hours = Math.floor(timeLeftSec / 3600);
+                const minutes = Math.floor((timeLeftSec % 3600) / 60);
+                const seconds = timeLeftSec % 60;
 
-                document.getElementById('timer-text').innerText = 
+                document.getElementById('timer-text').innerText =
                     `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                
-                let elapsedHours = (MINING_DURATION_MS - timeLeftMs) / (1000 * 3600);
-                let currentCycleMined = Math.max(0, elapsedHours * miningSpeed);
+
+                const elapsedHours = (MINING_DURATION_MS - timeLeftMs) / (1000 * 3600);
+                const currentCycleMined = Math.max(0, elapsedHours * miningSpeed);
                 document.getElementById('cycle-earned').innerText = currentCycleMined.toFixed(2) + " $NEX";
 
                 document.getElementById('rig-status').innerText = "Mining session active...";
@@ -359,7 +426,6 @@
             }
         }
 
-        // Update UI every second & whenever app returns to foreground
         setInterval(updateUI, 1000);
         document.addEventListener("visibilitychange", () => {
             if (!document.hidden) {
@@ -369,11 +435,11 @@
         });
 
         function claimCycle() {
-            let earnedTotal = 12 * miningSpeed;
+            const earnedTotal = 12 * miningSpeed;
             balance += earnedTotal;
-            localStorage.setItem(balanceKey, balance);
+            localStorage.setItem(balanceKey, balance.toString());
 
-            let newEndTime = Date.now() + MINING_DURATION_MS;
+            const newEndTime = Date.now() + MINING_DURATION_MS;
             localStorage.setItem(sessionKey, JSON.stringify({ endTime: newEndTime }));
 
             updateUI();
@@ -382,13 +448,14 @@
 
         // Programmatic AdsGram / Monetag Ad Boost
         function watchBoostAd() {
-            let adsgramBlockId = localStorage.getItem('nexis_adsgram_block') || "";
-            let monetagFallbackUrl = "https://uplcm.com/4/12141542";
+            const adsgramBlockId = (localStorage.getItem('nexis_adsgram_block') || "").trim();
+            const monetagFallbackUrl = "https://uplcm.com/4/12141542";
 
-            if (window.Telegram?.WebApp && window.Adsgram && adsgramBlockId.trim() !== "") {
+            if (window.Telegram?.WebApp && window.Adsgram && adsgramBlockId !== "") {
                 window.Adsgram.init({ blockId: adsgramBlockId }).show()
                     .then(() => {
                         grantBoostReward();
+                        alert("Reward verified! +2.0 $NEXIS added and mining speed boosted!");
                     })
                     .catch((result) => {
                         console.log("AdsGram fallback:", result);
@@ -405,8 +472,8 @@
             balance += 2.0;
             miningSpeed += 0.25;
 
-            localStorage.setItem(balanceKey, balance);
-            localStorage.setItem(speedKey, miningSpeed);
+            localStorage.setItem(balanceKey, balance.toString());
+            localStorage.setItem(speedKey, miningSpeed.toString());
             updateUI();
         }
 
