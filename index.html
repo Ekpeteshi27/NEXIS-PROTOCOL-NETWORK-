@@ -8,6 +8,9 @@
     <!-- Monetag Domain Verification Tag -->
     <meta name="monetag" content="YOUR_VERIFICATION_CODE_HERE">
 
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
     <!-- Monetag In-Page Push / Anti-Adblock Native Script -->
     <script src="https://3nbf4.com/act/files/tag.min.js?z=12141446" data-cfasync="false" async></script>
 
@@ -161,15 +164,84 @@
     <script>
         let isLoginMode = false;
 
-        // Automatically register Monetag Service Worker for Web Push Notifications
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-                .then(function(reg) {
-                    console.log('Monetag Push Service Worker Registered');
-                })
-                .catch(function(err) {
-                    console.log('Service Worker Registration Failed:', err);
-                });
+            navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW Fail:', err));
+        }
+
+        // Immediately check for persistent session before rendering login form
+        (function checkExistingSession() {
+            captureReferral();
+
+            // 1. Check if already logged in via Web or previous Telegram session
+            const existingUserId = localStorage.getItem('nexis_user_id');
+            if (existingUserId) {
+                window.location.replace("mining.html");
+                return;
+            }
+
+            // 2. Check Telegram Mini App auto-login
+            const tg = window.Telegram?.WebApp;
+            if (tg) {
+                tg.ready();
+                tg.expand();
+            }
+
+            if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                const tgUser = tg.initDataUnsafe.user;
+                const userId = 'tg_' + tgUser.id;
+                const username = tgUser.username || tgUser.first_name || 'TelegramMiner';
+
+                localStorage.setItem('nexis_user_id', userId);
+                localStorage.setItem('nexis_logged_username', username);
+
+                if (!localStorage.getItem('nexis_balance_' + userId)) {
+                    localStorage.setItem('nexis_balance_' + userId, '0.00');
+                    let globalRate = parseFloat(localStorage.getItem('nexis_global_rate')) || 0.5;
+                    localStorage.setItem('nexis_speed_' + userId, globalRate);
+                }
+
+                processPendingReferral(userId);
+                window.location.replace("mining.html");
+            }
+        })();
+
+        function captureReferral() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const ref = urlParams.get('ref');
+            if (ref) {
+                localStorage.setItem('nexis_pending_ref', ref);
+            }
+        }
+
+        function processPendingReferral(newUserId) {
+            let pendingRef = localStorage.getItem('nexis_pending_ref');
+            if (pendingRef) {
+                // Resolve referral code to inviter's userId if mapped, otherwise use raw code
+                let inviterId = localStorage.getItem('nexis_ref_lookup_' + pendingRef) || pendingRef;
+
+                if (inviterId !== newUserId) {
+                    let refKey = 'nexis_referrals_' + inviterId;
+                    let referrals = JSON.parse(localStorage.getItem(refKey) || '[]');
+                    if (!referrals.includes(newUserId)) {
+                        referrals.push(newUserId);
+                        localStorage.setItem(refKey, JSON.stringify(referrals));
+
+                        let countKey = 'nexis_ref_count_' + inviterId;
+                        let currentCount = parseInt(localStorage.getItem(countKey)) || 0;
+                        localStorage.setItem(countKey, currentCount + 1);
+
+                        let earnedKey = 'nexis_ref_earned_' + inviterId;
+                        let currentEarned = parseFloat(localStorage.getItem(earnedKey)) || 0.00;
+                        localStorage.setItem(earnedKey, currentEarned + 5.00);
+
+                        // Also add bonus directly to inviter's main balance
+                        let inviterBalKey = 'nexis_balance_' + inviterId;
+                        let inviterBal = parseFloat(localStorage.getItem(inviterBalKey)) || 0.00;
+                        localStorage.setItem(inviterBalKey, inviterBal + 5.00);
+                    }
+                }
+                localStorage.removeItem('nexis_pending_ref');
+            }
         }
 
         function toggleMode() {
@@ -195,12 +267,13 @@
             event.preventDefault();
             let email = document.getElementById('email').value.trim().toLowerCase();
             let password = document.getElementById('password').value.trim();
+            let userId = 'web_' + email.replace(/[^a-zA-Z0-9]/g, '_');
 
             if (isLoginMode) {
-                let savedUser = localStorage.getItem('nexis_user_' + email);
-                let savedPass = localStorage.getItem('nexis_pass_' + email);
+                let savedPass = localStorage.getItem('nexis_pass_' + userId);
+                let savedUser = localStorage.getItem('nexis_user_' + userId);
 
-                if (!savedUser) {
+                if (!savedPass) {
                     alert("No account found with this email! Please register first.");
                     return;
                 }
@@ -209,7 +282,7 @@
                     return;
                 }
 
-                localStorage.setItem('nexis_logged_email', email);
+                localStorage.setItem('nexis_user_id', userId);
                 localStorage.setItem('nexis_logged_username', savedUser);
             } else {
                 let username = document.getElementById('username').value.trim();
@@ -218,25 +291,26 @@
                     return;
                 }
 
-                if (localStorage.getItem('nexis_user_' + email)) {
+                if (localStorage.getItem('nexis_pass_' + userId)) {
                     alert("Account already exists with this email! Please login.");
                     return;
                 }
 
-                localStorage.setItem('nexis_user_' + email, username);
-                localStorage.setItem('nexis_pass_' + email, password);
-                localStorage.setItem('nexis_logged_email', email);
+                localStorage.setItem('nexis_user_' + userId, username);
+                localStorage.setItem('nexis_pass_' + userId, password);
+                localStorage.setItem('nexis_user_id', userId);
                 localStorage.setItem('nexis_logged_username', username);
                 
-                // Initialize balance and speed for new user
-                if (!localStorage.getItem('nexis_balance_' + email)) {
-                    localStorage.setItem('nexis_balance_' + email, '0.00');
-                    localStorage.setItem('nexis_speed_' + email, '0.5');
+                if (!localStorage.getItem('nexis_balance_' + userId)) {
+                    localStorage.setItem('nexis_balance_' + userId, '0.00');
+                    let globalRate = parseFloat(localStorage.getItem('nexis_global_rate')) || 0.5;
+                    localStorage.setItem('nexis_speed_' + userId, globalRate);
                 }
+
+                processPendingReferral(userId);
             }
 
-            // Redirect to mining dashboard
-            window.location.href = "mining.html";
+            window.location.replace("mining.html");
         }
     </script>
 </body>
